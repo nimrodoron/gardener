@@ -799,6 +799,7 @@ type Worker struct {
 	// +optional
 	CABundle *string `json:"caBundle,omitempty"`
 	// Container runtimes is a list of availability container runtimes for this worker pool.
+	// +optional
 	ContainerRuntimes []string `json:"containerRuntimes,omitempty"`
 	// Kubernetes contains configuration for Kubernetes components related to this worker pool.
 	// +optional

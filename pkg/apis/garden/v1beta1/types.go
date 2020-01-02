@@ -1210,6 +1210,9 @@ type Worker struct {
 	// value has been provided.
 	// +optional
 	MachineImage *ShootMachineImage `json:"machineImage,omitempty"`
+	// Runtimes is a list of availability container runtimes for this worker pool.
+	// +optional
+	ContainerRuntimes []string `json:"containerRuntimes,omitempty"`
 	// AutoScalerMin is the minimum number of VMs to create.
 	AutoScalerMin int `json:"autoScalerMin"`
 	// AutoScalerMin is the maximum number of VMs to create.
@@ -1235,8 +1238,6 @@ type Worker struct {
 	// CABundle is a certificate bundle which will be installed onto every machine of this worker pool.
 	// +optional
 	CABundle *string `json:"caBundle,omitempty"`
-	// Runtimes is a list of availability container runtimes for this worker pool.
-	ContainerRuntimes []string `json:"containerRuntimes,omitempty"`
 }
 
 var (

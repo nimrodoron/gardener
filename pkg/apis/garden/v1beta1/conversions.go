@@ -1588,10 +1588,11 @@ func Convert_v1beta1_Shoot_To_garden_Shoot(in *Shoot, out *garden.Shoot, s conve
 		for _, worker := range in.Spec.Cloud.Azure.Workers {
 			volumeType := worker.VolumeType
 			w := garden.Worker{
-				Annotations: worker.Annotations,
-				CABundle:    worker.CABundle,
-				Labels:      worker.Labels,
-				Name:        worker.Name,
+				Annotations:       worker.Annotations,
+				CABundle:          worker.CABundle,
+				ContainerRuntimes: worker.ContainerRuntimes,
+				Labels:            worker.Labels,
+				Name:              worker.Name,
 				Machine: garden.Machine{
 					Type: worker.MachineType,
 				},
@@ -1728,10 +1729,11 @@ func Convert_v1beta1_Shoot_To_garden_Shoot(in *Shoot, out *garden.Shoot, s conve
 		for _, worker := range in.Spec.Cloud.GCP.Workers {
 			volumeType := worker.VolumeType
 			w := garden.Worker{
-				Annotations: worker.Annotations,
-				CABundle:    worker.CABundle,
-				Labels:      worker.Labels,
-				Name:        worker.Name,
+				Annotations:       worker.Annotations,
+				CABundle:          worker.CABundle,
+				ContainerRuntimes: worker.ContainerRuntimes,
+				Labels:            worker.Labels,
+				Name:              worker.Name,
 				Machine: garden.Machine{
 					Type: worker.MachineType,
 				},
@@ -1871,10 +1873,11 @@ func Convert_v1beta1_Shoot_To_garden_Shoot(in *Shoot, out *garden.Shoot, s conve
 
 		for _, worker := range in.Spec.Cloud.OpenStack.Workers {
 			w := garden.Worker{
-				Annotations: worker.Annotations,
-				CABundle:    worker.CABundle,
-				Labels:      worker.Labels,
-				Name:        worker.Name,
+				Annotations:       worker.Annotations,
+				CABundle:          worker.CABundle,
+				ContainerRuntimes: worker.ContainerRuntimes,
+				Labels:            worker.Labels,
+				Name:              worker.Name,
 				Machine: garden.Machine{
 					Type: worker.MachineType,
 				},
@@ -2011,10 +2014,11 @@ func Convert_v1beta1_Shoot_To_garden_Shoot(in *Shoot, out *garden.Shoot, s conve
 		for _, worker := range in.Spec.Cloud.Alicloud.Workers {
 			volumeType := worker.VolumeType
 			w := garden.Worker{
-				Annotations: worker.Annotations,
-				CABundle:    worker.CABundle,
-				Labels:      worker.Labels,
-				Name:        worker.Name,
+				Annotations:       worker.Annotations,
+				CABundle:          worker.CABundle,
+				ContainerRuntimes: worker.ContainerRuntimes,
+				Labels:            worker.Labels,
+				Name:              worker.Name,
 				Machine: garden.Machine{
 					Type: worker.MachineType,
 				},
@@ -2116,10 +2120,11 @@ func Convert_v1beta1_Shoot_To_garden_Shoot(in *Shoot, out *garden.Shoot, s conve
 		for _, worker := range in.Spec.Cloud.Packet.Workers {
 			volumeType := worker.VolumeType
 			w := garden.Worker{
-				Annotations: worker.Annotations,
-				CABundle:    worker.CABundle,
-				Labels:      worker.Labels,
-				Name:        worker.Name,
+				Annotations:       worker.Annotations,
+				CABundle:          worker.CABundle,
+				ContainerRuntimes: worker.ContainerRuntimes,
+				Labels:            worker.Labels,
+				Name:              worker.Name,
 				Machine: garden.Machine{
 					Type: worker.MachineType,
 				},
@@ -2356,6 +2361,7 @@ func Convert_garden_Worker_To_v1beta1_AWSWorker(in *garden.Worker, out *AWSWorke
 	out.Labels = in.Labels
 	out.Taints = in.Taints
 	out.CABundle = in.CABundle
+	out.ContainerRuntimes = in.ContainerRuntimes
 
 	var machineImage *ShootMachineImage
 	if in.Machine.Image != nil {
@@ -2400,6 +2406,7 @@ func Convert_garden_Worker_To_v1beta1_AzureWorker(in *garden.Worker, out *AzureW
 	out.Labels = in.Labels
 	out.Taints = in.Taints
 	out.CABundle = in.CABundle
+	out.ContainerRuntimes = in.ContainerRuntimes
 
 	var machineImage *ShootMachineImage
 	if in.Machine.Image != nil {
@@ -2444,6 +2451,7 @@ func Convert_garden_Worker_To_v1beta1_GCPWorker(in *garden.Worker, out *GCPWorke
 	out.Labels = in.Labels
 	out.Taints = in.Taints
 	out.CABundle = in.CABundle
+	out.ContainerRuntimes = in.ContainerRuntimes
 
 	var machineImage *ShootMachineImage
 	if in.Machine.Image != nil {
@@ -2488,6 +2496,7 @@ func Convert_garden_Worker_To_v1beta1_OpenStackWorker(in *garden.Worker, out *Op
 	out.Labels = in.Labels
 	out.Taints = in.Taints
 	out.CABundle = in.CABundle
+	out.ContainerRuntimes = in.ContainerRuntimes
 
 	var machineImage *ShootMachineImage
 	if in.Machine.Image != nil {
@@ -2525,6 +2534,7 @@ func Convert_garden_Worker_To_v1beta1_AlicloudWorker(in *garden.Worker, out *Ali
 	out.Labels = in.Labels
 	out.Taints = in.Taints
 	out.CABundle = in.CABundle
+	out.ContainerRuntimes = in.ContainerRuntimes
 
 	var machineImage *ShootMachineImage
 	if in.Machine.Image != nil {
@@ -2569,6 +2579,7 @@ func Convert_garden_Worker_To_v1beta1_PacketWorker(in *garden.Worker, out *Packe
 	out.Labels = in.Labels
 	out.Taints = in.Taints
 	out.CABundle = in.CABundle
+	out.ContainerRuntimes = in.ContainerRuntimes
 
 	var machineImage *ShootMachineImage
 	if in.Machine.Image != nil {
