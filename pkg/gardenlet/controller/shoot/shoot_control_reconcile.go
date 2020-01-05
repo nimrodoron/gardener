@@ -315,6 +315,26 @@ func (c *Controller) runReconcileShootFlow(o *operation.Operation, operationType
 			Fn:           flow.TaskFn(botanist.WaitUntilExtensionResourcesDeleted).SkipIf(o.Shoot.HibernationEnabled),
 			Dependencies: flow.NewTaskIDs(deleteStaleExtensionResources),
 		})
+		_ = g.Add(flow.Task{
+			Name:         "Deploying container runtime resources",
+			Fn:           flow.TaskFn(botanist.DeployExtensionResources).RetryUntilTimeout(defaultInterval, defaultTimeout),
+			Dependencies: flow.NewTaskIDs(initializeShootClients),
+		})
+		/*_ = g.Add(flow.Task{
+			Name:         "Waiting until extension resources are ready",
+			Fn:           flow.TaskFn(botanist.WaitUntilExtensionResourcesReady),
+			Dependencies: flow.NewTaskIDs(deployContainerRuntimeResources),
+		})
+		deleteStaleExtensionResources = g.Add(flow.Task{
+			Name:         "Delete stale extension resources",
+			Fn:           flow.TaskFn(botanist.DeleteStaleExtensionResources).RetryUntilTimeout(defaultInterval, defaultTimeout),
+			Dependencies: flow.NewTaskIDs(initializeShootClients),
+		})
+		_ = g.Add(flow.Task{
+			Name:         "Waiting until stale extension resources are deleted",
+			Fn:           flow.TaskFn(botanist.WaitUntilExtensionResourcesDeleted).SkipIf(o.Shoot.HibernationEnabled),
+			Dependencies: flow.NewTaskIDs(deleteStaleExtensionResources),
+		})*/
 		f = g.Compile()
 	)
 
