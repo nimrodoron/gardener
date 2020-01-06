@@ -19,15 +19,10 @@
 --kubeconfig=/var/lib/kubelet/kubeconfig-real
 --network-plugin=cni
 {{- if semverCompare "< 1.15" .Values.kubernetes.version }}
---node-labels="kubernetes.io/role=node,node-role.kubernetes.io/node=,worker.garden.sapcloud.io/group={{ required "worker.name is required" .Values.worker.name }},worker.gardener.cloud/pool={{ required "worker.name is required" .Values.worker.name }}
+--node-labels="kubernetes.io/role=node,node-role.kubernetes.io/node=,worker.garden.sapcloud.io/group={{ required "worker.name is required" .Values.worker.name }},worker.gardener.cloud/pool={{ required "worker.name is required" .Values.worker.name }}{{- if .Values.worker.containerRuntimes }}{{- range $value := .Values.worker.containerRuntimes }},worker.garden.sapcloud.io/support.container-runtime.{{ $value }}=true{{- end }}{{- end }}"
 {{- else }}
---node-labels="node.kubernetes.io/role=node,worker.garden.sapcloud.io/group={{ required "worker.name is required" .Values.worker.name }},worker.gardener.cloud/pool={{ required "worker.name is required" .Values.worker.name }}
+--node-labels="node.kubernetes.io/role=node,worker.garden.sapcloud.io/group={{ required "worker.name is required" .Values.worker.name }},worker.gardener.cloud/pool={{ required "worker.name is required" .Values.worker.name }}{{- if .Values.worker.containerRuntimes }}{{- range $value := .Values.worker.containerRuntimes }},worker.garden.sapcloud.io/support.container-runtime.{{ $value }}=true{{- end }}{{- end }}"
 {{- end }}
-{{- if .Values.worker.containerRuntimes }}
-{{- range containerRuntime, .Values.worker.containerRuntimes }}
-  ,container-runtime.{{ .containerRuntime }}: true
-{{- end -}}
-"
 {{- if semverCompare "< 1.11" .Values.kubernetes.version }}
 --rotate-certificates=true
 {{- end }}

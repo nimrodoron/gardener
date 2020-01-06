@@ -16,6 +16,9 @@ kubernetes:
   version: 1.11.2
 worker:
   name: cpu-worker
+  containerRuntimes:
+    - gvisor
+    - kata-containers
   kubelet:
     caCert: abcd
     cpuCFSQuota: true
