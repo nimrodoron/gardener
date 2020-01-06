@@ -317,23 +317,23 @@ func (c *Controller) runReconcileShootFlow(o *operation.Operation, operationType
 		})
 		deployContainerRuntimeResources = g.Add(flow.Task{
 			Name:         "Deploying container runtime resources",
-			Fn:           flow.TaskFn(botanist.DeployExtensionResources).RetryUntilTimeout(defaultInterval, defaultTimeout),
+			Fn:           flow.TaskFn(botanist.DeployContainerRuntimeResources).RetryUntilTimeout(defaultInterval, defaultTimeout),
 			Dependencies: flow.NewTaskIDs(initializeShootClients),
 		})
 		_ = g.Add(flow.Task{
-			Name:         "Waiting until extension resources are ready",
-			Fn:           flow.TaskFn(botanist.WaitUntilExtensionResourcesReady),
+			Name:         "Waiting until container runtime resources are ready",
+			Fn:           flow.TaskFn(botanist.WaitUntilContainerRuntimeResourcesReady),
 			Dependencies: flow.NewTaskIDs(deployContainerRuntimeResources),
 		})
-		deleteContainerRuntimeExtensionResources = g.Add(flow.Task{
-			Name:         "Delete stale extension resources",
-			Fn:           flow.TaskFn(botanist.DeleteStaleExtensionResources).RetryUntilTimeout(defaultInterval, defaultTimeout),
+		deleteStaleContainerRuntimeResources = g.Add(flow.Task{
+			Name:         "Delete stale container runtime  resources",
+			Fn:           flow.TaskFn(botanist.DeleteStaleContainerRuntimeResources).RetryUntilTimeout(defaultInterval, defaultTimeout),
 			Dependencies: flow.NewTaskIDs(initializeShootClients),
 		})
 		_ = g.Add(flow.Task{
-			Name:         "Waiting until stale extension resources are deleted",
-			Fn:           flow.TaskFn(botanist.WaitUntilExtensionResourcesDeleted).SkipIf(o.Shoot.HibernationEnabled),
-			Dependencies: flow.NewTaskIDs(deleteContainerRuntimeExtensionResources),
+			Name:         "Waiting until stale container runtime resources are deleted",
+			Fn:           flow.TaskFn(botanist.WaitUntilContainerRuntimeResourcesDeleted).SkipIf(o.Shoot.HibernationEnabled),
+			Dependencies: flow.NewTaskIDs(deleteStaleContainerRuntimeResources),
 		})
 		f = g.Compile()
 	)
