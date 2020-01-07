@@ -15,8 +15,6 @@ spec:
     plural: containerruntimes
     singular: containerruntime
     kind: ContainerRuntime
-    shortNames:
-      - cre
   additionalPrinterColumns:
     - name: Type
       type: string
