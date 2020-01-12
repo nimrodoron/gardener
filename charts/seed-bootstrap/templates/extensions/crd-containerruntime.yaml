@@ -4,7 +4,7 @@ kind: CustomResourceDefinition
 metadata:
   name: containerruntimes.extensions.gardener.cloud
 spec:
-  group: containerruntimes.gardener.cloud
+  group: extensions.gardener.cloud
   versions:
     - name: v1alpha1
       served: true
