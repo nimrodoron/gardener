@@ -121,8 +121,8 @@ func calculateExtensions(gardenClient client.Client, shoot *gardencorev1beta1.Sh
 	return MergeExtensions(controllerRegistrations.Items, shoot.Spec.Extensions, seedNamespace)
 }
 
-func calculateContainerRuntimes(gardenClient client.Client, shoot *gardencorev1alpha1.Shoot, seedNamespace string) (map[string]ContainerRuntime, error) {
-	var controllerRegistrations = &gardencorev1alpha1.ControllerRegistrationList{}
+func calculateContainerRuntimes(gardenClient client.Client, shoot *gardencorev1beta1.Shoot, seedNamespace string) (map[string]ContainerRuntime, error) {
+	var controllerRegistrations = &gardencorev1beta1.ControllerRegistrationList{}
 	if err := gardenClient.List(context.TODO(), controllerRegistrations); err != nil {
 		return nil, err
 	}
@@ -421,9 +421,9 @@ func MergeExtensions(registrations []gardencorev1beta1.ControllerRegistration, e
 }
 
 // MergeContainerRuntimeExtensions merges the given controller registrations with the worker's container runtime extensions, expecting that each type in container runtime extensions is also represented in the registration.
-func MergeContainerRuntimeExtensions(registrations []gardencorev1alpha1.ControllerRegistration, workers []gardencorev1alpha1.Worker, namespace string) (map[string]ContainerRuntime, error) {
+func MergeContainerRuntimeExtensions(registrations []gardencorev1beta1.ControllerRegistration, workers []gardencorev1beta1.Worker, namespace string) (map[string]ContainerRuntime, error) {
 	var (
-		typeToControllerRegistration       = make(map[string]gardencorev1alpha1.ControllerRegistration)
+		typeToControllerRegistration       = make(map[string]gardencorev1beta1.ControllerRegistration)
 		requiredContainerRuntimeExtensions = make(map[string]ContainerRuntime)
 	)
 
