@@ -309,8 +309,9 @@ func (b *Botanist) deployOperatingSystemConfigsForWorker(machineTypes []gardenco
 	}
 
 	originalConfig["worker"] = map[string]interface{}{
-		"name":    worker.Name,
-		"kubelet": kubelet,
+		"name":              worker.Name,
+		"kubelet":           kubelet,
+		"containerRuntimes": worker.ContainerRuntimes,
 	}
 
 	var (
