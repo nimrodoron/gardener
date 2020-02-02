@@ -6,7 +6,7 @@
     [Unit]
     Description=kubelet daemon
     Documentation=https://kubernetes.io/docs/admin/kubelet
-    After=docker.service
+    After=containerd.service
     Wants=docker.socket rpc-statd.service
     [Install]
     WantedBy=multi-user.target

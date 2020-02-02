@@ -21,8 +21,8 @@ spec:
     content: |
       [Unit]
       Description=Downloads the actual cloud config from the Shoot API server and executes it
-      After=docker.service docker.socket
-      Wants=docker.socket
+      After=containerd.service containerd.socket
+      Wants=containerd.socket
       [Service]
       Restart=always
       RestartSec=30
