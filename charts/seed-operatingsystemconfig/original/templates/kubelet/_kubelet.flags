@@ -15,6 +15,7 @@
 {{- if semverCompare "< 1.14" .Values.kubernetes.version }}
 --feature-gates=SupportPodPidsLimit=true
 {{- end }}
+--feature-gates=CRIContainerLogRotation=true
 --pod-infra-container-image={{ index .Values.images "pause-container" }}
 --kubeconfig=/var/lib/kubelet/kubeconfig-real
 --network-plugin=cni
