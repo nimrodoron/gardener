@@ -15,6 +15,7 @@
 ## Usage
 
 * [Audit a Kubernetes cluster](usage/shoot_auditpolicy.md)
+* [Cluster purposes](usage/shoot_purposes.md)
 * [Custom `CoreDNS` configuration](usage/custom-dns.md)
 * [Trusted TLS certificate for shoot control planes](usage/trusted-tls-for-control-planes.md)
 * [Gardener configuration and usage](usage/configuration.md)
@@ -43,8 +44,6 @@
 * [Adding New Cloud Providers](development/new-cloud-provider.md)
 * [Extending the Monitoring Stack](development/monitoring-stack.md)
 * [How to create log parser for container into fluent-bit](development/log_parsers.md)
-* [User Alerts](development/user_alerts.md)
-* [Operator Alerts](development/operator_alerts.md)
 
 ## Extensions
 
@@ -85,7 +84,10 @@
 * [Deploying the Gardener into a Kubernetes cluster](deployment/kubernetes.md)
 * [Deploying the Gardener and a Seed into an AKS cluster](deployment/aks.md)
 * [Overwrite image vector](deployment/image_vector.md)
+* [Migration from Gardener `v0` to `v1`](deployment/migration_v0_to_v1.md)
 
 ## Monitoring
 
 * [Alerting](monitoring/alerting.md)
+* [User Alerts](monitoring/user_alerts.md)
+* [Operator Alerts](monitoring/operator_alerts.md)

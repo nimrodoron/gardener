@@ -21,10 +21,10 @@ import (
 	"net"
 	"os/exec"
 
+	"github.com/gardener/gardener/pkg/apis/core"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
-	"github.com/gardener/gardener/pkg/apis/garden"
 	"github.com/gardener/gardener/pkg/features"
 	gardenletfeatures "github.com/gardener/gardener/pkg/gardenlet/features"
 	"github.com/gardener/gardener/pkg/operation/common"
@@ -294,8 +294,8 @@ func (b *Botanist) generateWantedSecrets(basicAuthAPIServer *secrets.BasicAuth, 
 			CertificateSecretConfig: &secrets.CertificateSecretConfig{
 				Name: "kube-state-metrics",
 
-				CommonName:   fmt.Sprintf("%s:monitoring:kube-state-metrics", garden.GroupName),
-				Organization: []string{fmt.Sprintf("%s:monitoring", garden.GroupName)},
+				CommonName:   fmt.Sprintf("%s:monitoring:kube-state-metrics", core.GroupName),
+				Organization: []string{fmt.Sprintf("%s:monitoring", core.GroupName)},
 				DNSNames:     nil,
 				IPAddresses:  nil,
 
@@ -314,8 +314,8 @@ func (b *Botanist) generateWantedSecrets(basicAuthAPIServer *secrets.BasicAuth, 
 			CertificateSecretConfig: &secrets.CertificateSecretConfig{
 				Name: "prometheus",
 
-				CommonName:   fmt.Sprintf("%s:monitoring:prometheus", garden.GroupName),
-				Organization: []string{fmt.Sprintf("%s:monitoring", garden.GroupName)},
+				CommonName:   fmt.Sprintf("%s:monitoring:prometheus", core.GroupName),
+				Organization: []string{fmt.Sprintf("%s:monitoring", core.GroupName)},
 				DNSNames:     nil,
 				IPAddresses:  nil,
 
@@ -334,8 +334,8 @@ func (b *Botanist) generateWantedSecrets(basicAuthAPIServer *secrets.BasicAuth, 
 			CertificateSecretConfig: &secrets.CertificateSecretConfig{
 				Name: "prometheus-kubelet",
 
-				CommonName:   fmt.Sprintf("%s:monitoring:prometheus", garden.GroupName),
-				Organization: []string{fmt.Sprintf("%s:monitoring", garden.GroupName)},
+				CommonName:   fmt.Sprintf("%s:monitoring:prometheus", core.GroupName),
+				Organization: []string{fmt.Sprintf("%s:monitoring", core.GroupName)},
 				DNSNames:     nil,
 				IPAddresses:  nil,
 
@@ -490,7 +490,7 @@ func (b *Botanist) generateWantedSecrets(basicAuthAPIServer *secrets.BasicAuth, 
 			Name: common.AlertManagerTLS,
 
 			CommonName:   "alertmanager",
-			Organization: []string{fmt.Sprintf("%s:monitoring:ingress", garden.GroupName)},
+			Organization: []string{fmt.Sprintf("%s:monitoring:ingress", core.GroupName)},
 			DNSNames:     b.ComputeAlertManagerHosts(),
 			IPAddresses:  nil,
 
@@ -504,7 +504,7 @@ func (b *Botanist) generateWantedSecrets(basicAuthAPIServer *secrets.BasicAuth, 
 			Name: common.GrafanaTLS,
 
 			CommonName:   "grafana",
-			Organization: []string{fmt.Sprintf("%s:monitoring:ingress", garden.GroupName)},
+			Organization: []string{fmt.Sprintf("%s:monitoring:ingress", core.GroupName)},
 			DNSNames:     b.ComputeGrafanaHosts(),
 			IPAddresses:  nil,
 
@@ -518,7 +518,7 @@ func (b *Botanist) generateWantedSecrets(basicAuthAPIServer *secrets.BasicAuth, 
 			Name: common.PrometheusTLS,
 
 			CommonName:   "prometheus",
-			Organization: []string{fmt.Sprintf("%s:monitoring:ingress", garden.GroupName)},
+			Organization: []string{fmt.Sprintf("%s:monitoring:ingress", core.GroupName)},
 			DNSNames:     b.ComputePrometheusHosts(),
 			IPAddresses:  nil,
 
@@ -592,7 +592,7 @@ func (b *Botanist) generateWantedSecrets(basicAuthAPIServer *secrets.BasicAuth, 
 				Name: common.KibanaTLS,
 
 				CommonName:   "kibana",
-				Organization: []string{fmt.Sprintf("%s:logging:ingress", garden.GroupName)},
+				Organization: []string{fmt.Sprintf("%s:logging:ingress", core.GroupName)},
 				DNSNames:     b.ComputeKibanaHosts(),
 				IPAddresses:  nil,
 
@@ -681,7 +681,7 @@ func (b *Botanist) DeploySecrets(ctx context.Context) error {
 	// If the rotate-kubeconfig operation annotation is set then we delete the existing kubecfg and basic-auth
 	// secrets. This will trigger the regeneration, incorporating new credentials. After successful deletion of all
 	// old secrets we remove the operation annotation.
-	if kutil.HasMetaDataAnnotation(b.Shoot.Info, common.ShootOperation, common.ShootOperationRotateKubeconfigCredentials) {
+	if val, ok := common.GetShootOperationAnnotation(b.Shoot.Info.Annotations); ok && val == common.ShootOperationRotateKubeconfigCredentials {
 		b.Logger.Infof("Rotating kubeconfig credentials")
 
 		for _, secretName := range []string{common.StaticTokenSecretName, common.BasicAuthSecretName, common.KubecfgSecretName} {
@@ -691,7 +691,8 @@ func (b *Botanist) DeploySecrets(ctx context.Context) error {
 		}
 
 		if _, err := kutil.TryUpdateShootAnnotations(b.K8sGardenClient.GardenCore(), retry.DefaultRetry, b.Shoot.Info.ObjectMeta, func(shoot *gardencorev1beta1.Shoot) (*gardencorev1beta1.Shoot, error) {
-			delete(shoot.Annotations, common.ShootOperation)
+			delete(shoot.Annotations, v1beta1constants.GardenerOperation)
+			delete(shoot.Annotations, common.ShootOperationDeprecated)
 			return shoot, nil
 		}); err != nil {
 			return err
@@ -1166,10 +1167,10 @@ func dnsNamesForService(name, namespace string) []string {
 
 func dnsNamesForEtcd(namespace string) []string {
 	names := []string{
-		fmt.Sprintf("%s-0", v1beta1constants.StatefulSetNameETCDMain),
-		fmt.Sprintf("%s-0", v1beta1constants.StatefulSetNameETCDEvents),
+		fmt.Sprintf("%s-0", v1beta1constants.ETCDMain),
+		fmt.Sprintf("%s-0", v1beta1constants.ETCDEvents),
 	}
-	names = append(names, dnsNamesForService(fmt.Sprintf("%s-client", v1beta1constants.StatefulSetNameETCDMain), namespace)...)
-	names = append(names, dnsNamesForService(fmt.Sprintf("%s-client", v1beta1constants.StatefulSetNameETCDEvents), namespace)...)
+	names = append(names, dnsNamesForService(fmt.Sprintf("%s-client", v1beta1constants.ETCDMain), namespace)...)
+	names = append(names, dnsNamesForService(fmt.Sprintf("%s-client", v1beta1constants.ETCDEvents), namespace)...)
 	return names
 }
