@@ -12,27 +12,21 @@ PATH_CLOUDCONFIG_OLD="${PATH_CLOUDCONFIG}.old"
 
 mkdir -p "$DIR_CLOUDCONFIG" "$DIR_KUBELET"
 
-function containerd-preload() {
+function docker-preload() {
   name="$1"
   image="$2"
   echo "Checking whether to preload $name from $image"
-  if [ -z $(ctr images list -q "$image") ]; then
+  if [ -z $(docker images -q "$image") ]; then
     echo "Preloading $name from $image"
-    ctr images pull "$image"
+    docker pull "$image"
   else
     echo "No need to preload $name from $image"
   fi
 }
 
 {{ range $name, $image := (required ".images is required" .images) -}}
-containerd-preload "{{ $name }}" "{{ $image }}"
+docker-preload "{{ $name }}" "{{ $image }}"
 {{ end }}
-
-{{- if semverCompare "< 1.17" .kubernetesVersion }}
-ctr run --rm -v /opt/bin:/opt/bin:rw {{ required "images.hyperkube is required" .images.hyperkube }} /bin/sh -c "cp /usr/local/bin/kubectl /opt/bin && cp /usr/local/bin/kubelet /opt/bin"
-{{- else }}
-ctr run --rm -v /opt/bin:/opt/bin:rw --entrypoint /bin/sh {{ required "images.hyperkube is required" .images.hyperkube }} -c "cp /usr/local/bin/kubectl /opt/bin && cp /usr/local/bin/kubelet /opt/bin"
-{{- end }}
 
 cat << 'EOF' | base64 -d > "$PATH_CLOUDCONFIG"
 {{ .worker.cloudConfig | b64enc }}
