@@ -12,26 +12,27 @@ PATH_CLOUDCONFIG_OLD="${PATH_CLOUDCONFIG}.old"
 
 mkdir -p "$DIR_CLOUDCONFIG" "$DIR_KUBELET"
 
-function docker-preload() {
+
+function containerd-preload() {
   name="$1"
   image="$2"
   echo "Checking whether to preload $name from $image"
-  if [ -z $(docker images -q "$image") ]; then
+  if [ -z $(ctr images list -q "$image") ]; then
     echo "Preloading $name from $image"
-    docker pull "$image"
+    ctr images pull "$image"
   else
     echo "No need to preload $name from $image"
   fi
 }
 
 {{ range $name, $image := (required ".images is required" .images) -}}
-docker-preload "{{ $name }}" "{{ $image }}"
+containerd-preload "{{ $name }}" "{{ $image }}"
 {{ end }}
 
 {{- if semverCompare "< 1.17" .kubernetesVersion }}
-docker run --rm -v /opt/bin:/opt/bin:rw {{ required "images.hyperkube is required" .images.hyperkube }} /bin/sh -c "cp /usr/local/bin/kubectl /opt/bin"
+ctr run --rm -v /opt/bin:/opt/bin:rw {{ required "images.hyperkube is required" .images.hyperkube }} /bin/sh -c "cp /usr/local/bin/kubectl /opt/bin && cp /usr/local/bin/kubelet /opt/bin"
 {{- else }}
-docker run --rm -v /opt/bin:/opt/bin:rw --entrypoint /bin/sh {{ required "images.hyperkube is required" .images.hyperkube }} -c "cp /usr/local/bin/kubectl /opt/bin"
+ctr run --rm -v /opt/bin:/opt/bin:rw --entrypoint /bin/sh {{ required "images.hyperkube is required" .images.hyperkube }} -c "cp /usr/local/bin/kubectl /opt/bin && cp /usr/local/bin/kubelet /opt/bin"
 {{- end }}
 
 cat << 'EOF' | base64 -d > "$PATH_CLOUDCONFIG"
@@ -75,7 +76,7 @@ if ! diff "$PATH_CLOUDCONFIG" "$PATH_CLOUDCONFIG_OLD" >/dev/null; then
     echo "Successfully applied new cloud config version"
     systemctl daemon-reload
 {{- range $name := (required ".worker.units is required" .worker.units) }}
-{{- if ne $name "docker.service" }}
+{{- if ne $name "containerd.service" }}
     systemctl enable {{ $name }} && systemctl restart --no-block {{ $name }}
 {{- end }}
 {{- end }}
