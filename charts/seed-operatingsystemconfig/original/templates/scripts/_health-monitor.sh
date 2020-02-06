@@ -148,7 +148,7 @@
         echo "Start kubernetes health monitoring for $component"
         if [[ $component == "docker" ]]; then
           docker_monitoring
-        if [[ $component == "containerd" ]]; then
+        elif [[ $component == "containerd" ]]; then
           containerd_monitoring
         elif [[ $component == "kubelet" ]]; then
           kubelet_monitoring
