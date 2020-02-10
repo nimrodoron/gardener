@@ -24,6 +24,7 @@ spec:
 {{ include "kubelet-monitor" . | indent 2 }}
 {{ include "systemd-sysctl" . | indent 2 }}
 {{ include "gardener-user" . | indent 2 }}
+{{ include "containerd-sysctl" . | indent 2 }}
   files:
 {{ include "root-certs" . | indent 2 }}
 {{ include "docker-logrotate-config" . | indent 2 }}
@@ -32,3 +33,5 @@ spec:
 {{ include "kernel-config" . | indent 2 }}
 {{ include "health-monitor" . | indent 2 }}
 {{ include "gardener-user-script" . | indent 2 }}
+{{ include "init-containerd" . | indent 2 }}
+{{ include "containerd-config" . | indent 2 }}
