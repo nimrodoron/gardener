@@ -1,4 +1,4 @@
-{{- define "systemd-sysctl" -}}
+{{- define "containerd-sysctl" -}}
 {{/* it needs to be reloaded, because the /etc/containerd.service.d/ files are not present, when this is started for a first time */ -}}
 - name: containerd.service
   command: restart
