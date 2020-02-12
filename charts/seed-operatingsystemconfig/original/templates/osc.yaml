@@ -33,5 +33,5 @@ spec:
 {{ include "kernel-config" . | indent 2 }}
 {{ include "health-monitor" . | indent 2 }}
 {{ include "gardener-user-script" . | indent 2 }}
-{{ include "init-containerd" . | indent 2 }}
-{{ include "containerd-config" . | indent 2 }}
+{{ include "init-containerd-script" . | indent 2 }}
+{{ include "containerd-exec-pre-config" . | indent 2 }}

@@ -1,4 +1,4 @@
-{{- define "init-containerd" -}}
+{{- define "init-containerd-script" -}}
 - path: /opt/bin/init-containerd
   permissions: 0755
   content:
@@ -7,11 +7,9 @@
       data: |
         #!/bin/bash
 
-        mkdir -p /etc/containerd
-        containerd config default > /etc/containerd/config.toml
+        FILE=/etc/containerd/config.toml
+        if [ ! -f "$FILE" ]; then
+          mkdir -p /etc/containerd
+          containerd config default > "$FILE"
+        fi
 {{- end -}}
-q
-
-:q
-
-:
