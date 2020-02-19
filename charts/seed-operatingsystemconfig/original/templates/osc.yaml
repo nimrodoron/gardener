@@ -31,6 +31,9 @@ spec:
 {{ include "kubelet-monitor" . | indent 2 }}
 {{ include "systemd-sysctl" . | indent 2 }}
 {{ include "gardener-user" . | indent 2 }}
+{{- if .Values.enableContainerD }}
+{{ include "systemd-containerd" . | indent 2 }}
+{{- end }}
   files:
 {{ include "root-certs" . | indent 2 }}
 {{ include "docker-logrotate-config" . | indent 2 }}
