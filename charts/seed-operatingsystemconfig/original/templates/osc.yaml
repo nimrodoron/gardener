@@ -39,3 +39,10 @@ spec:
 {{ include "kernel-config" . | indent 2 }}
 {{ include "health-monitor" . | indent 2 }}
 {{ include "gardener-user-script" . | indent 2 }}
+{{- if .Values.enableContainerD }}
+{{ include "containerd-drop-in-config" . | indent 2 }}
+{{ include "init-containerd-config-script" . | indent 2 }}
+{{- end }}
+
+
+
