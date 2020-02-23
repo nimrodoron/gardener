@@ -217,6 +217,14 @@ func (c *defaultControl) ReconcileSeed(obj *gardencorev1beta1.Seed, key string) 
 					seedLogger.Error(err.Error())
 					return err
 				}
+
+				// TODO: This code can be removed in a future version.
+				if controllerutils.HasFinalizer(secret, gardencorev1beta1.ExternalGardenerNameDeprecated) {
+					if err := controllerutils.RemoveFinalizer(ctx, c.k8sGardenClient.Client(), secret, gardencorev1beta1.ExternalGardenerNameDeprecated); err != nil {
+						seedLogger.Error(err.Error())
+						return err
+					}
+				}
 			}
 
 			// Remove finalizer from Seed
@@ -276,6 +284,14 @@ func (c *defaultControl) ReconcileSeed(obj *gardencorev1beta1.Seed, key string) 
 			seedLogger.Error(err.Error())
 			return err
 		}
+
+		// TODO: This code can be removed in a future version.
+		if controllerutils.HasFinalizer(secret, gardencorev1beta1.ExternalGardenerNameDeprecated) {
+			if err := controllerutils.RemoveFinalizer(ctx, c.k8sGardenClient.Client(), secret, gardencorev1beta1.ExternalGardenerNameDeprecated); err != nil {
+				seedLogger.Error(err.Error())
+				return err
+			}
+		}
 	}
 
 	// Initialize conditions based on the current status.
@@ -309,7 +325,7 @@ func (c *defaultControl) ReconcileSeed(obj *gardencorev1beta1.Seed, key string) 
 	if err := seedpkg.BootstrapCluster(c.k8sGardenClient, seedObj, c.config, c.secrets, c.imageVector); err != nil {
 		conditionSeedBootstrapped = gardencorev1beta1helper.UpdatedCondition(conditionSeedBootstrapped, gardencorev1beta1.ConditionFalse, "BootstrappingFailed", err.Error())
 		c.updateSeedStatus(seed, seedKubernetesVersion, conditionSeedBootstrapped)
-		seedLogger.Error(err.Error())
+		seedLogger.Errorf("Seed bootstrapping failed: %+v", err)
 		return err
 	}
 

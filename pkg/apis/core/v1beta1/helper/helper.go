@@ -504,7 +504,7 @@ func ReadShootedSeed(shoot *gardencorev1beta1.Shoot) (*ShootedSeed, error) {
 		return nil, nil
 	}
 
-	val, ok := shoot.Annotations[v1beta1constants.AnnotationShootUseAsSeed]
+	val, ok := v1beta1constants.GetShootUseAsSeedAnnotation(shoot.Annotations)
 	if !ok {
 		return nil, nil
 	}
@@ -547,7 +547,7 @@ func ShootWantsClusterAutoscaler(shoot *gardencorev1beta1.Shoot) (bool, error) {
 // ShootIgnoresAlerts checks if the alerts for the annotated shoot cluster should be ignored.
 func ShootIgnoresAlerts(shoot *gardencorev1beta1.Shoot) bool {
 	ignore := false
-	if value, ok := shoot.Annotations[v1beta1constants.AnnotationShootIgnoreAlerts]; ok {
+	if value, ok := v1beta1constants.GetShootIgnoreAlertsAnnotation(shoot.Annotations); ok {
 		ignore, _ = strconv.ParseBool(value)
 	}
 	return ignore
@@ -741,4 +741,20 @@ func WrapWithLastError(err error, lastError *gardencorev1beta1.LastError) error 
 		return err
 	}
 	return errors.Wrapf(err, "last error: %s", lastError.Description)
+}
+
+// IsAPIServerExposureManaged returns true, if the Object is managed by Gardener for API server exposure.
+// This indicates to extensions that they should not mutate the object.
+// Gardener marks the kube-apiserver Service and Deployment as managed by it when it uses SNI to expose them.
+func IsAPIServerExposureManaged(obj metav1.Object) bool {
+	if obj == nil {
+		return false
+	}
+
+	if v, found := obj.GetLabels()[v1beta1constants.LabelAPIServerExposure]; found &&
+		v == v1beta1constants.LabelAPIServerExposureGardenerManaged {
+		return true
+	}
+
+	return false
 }

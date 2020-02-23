@@ -31,7 +31,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/util/sets"
 	kubecorev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
@@ -123,7 +122,7 @@ func (c *defaultControl) ReconcileSecretBinding(obj *gardencorev1beta1.SecretBin
 	// it has to be ensured that no Shoots are depending on the SecretBinding anymore.
 	// When this happens the controller will remove the finalizers from the SecretBinding so that it can be garbage collected.
 	if secretBinding.DeletionTimestamp != nil {
-		if !sets.NewString(secretBinding.Finalizers...).Has(gardencorev1beta1.GardenerName) {
+		if !controllerutils.HasFinalizer(secretBinding, gardencorev1beta1.GardenerName) {
 			return nil
 		}
 
@@ -136,7 +135,7 @@ func (c *defaultControl) ReconcileSecretBinding(obj *gardencorev1beta1.SecretBin
 		if len(associatedShoots) == 0 {
 			secretBindingLogger.Info("No Shoots are referencing the SecretBinding. Deletion accepted.")
 
-			mayReleaseSecret, err := c.mayReleaseSecret(secretBinding.SecretRef.Namespace, secretBinding.SecretRef.Name)
+			mayReleaseSecret, err := c.mayReleaseSecret(secretBinding.Namespace, secretBinding.Name, secretBinding.SecretRef.Namespace, secretBinding.SecretRef.Name)
 			if err != nil {
 				secretBindingLogger.Error(err.Error())
 				return err
@@ -149,6 +148,14 @@ func (c *defaultControl) ReconcileSecretBinding(obj *gardencorev1beta1.SecretBin
 					if err2 := controllerutils.RemoveFinalizer(ctx, c.k8sGardenClient.Client(), secret.DeepCopy(), gardencorev1beta1.ExternalGardenerName); err2 != nil {
 						secretBindingLogger.Error(err2.Error())
 						return err2
+					}
+
+					// TODO: This code can be removed in a future version.
+					if controllerutils.HasFinalizer(secret, gardencorev1beta1.ExternalGardenerNameDeprecated) {
+						if err2 := controllerutils.RemoveFinalizer(ctx, c.k8sGardenClient.Client(), secret.DeepCopy(), gardencorev1beta1.ExternalGardenerNameDeprecated); err2 != nil {
+							secretBindingLogger.Errorf("Could not remove deprecated finalizer from Secret referenced in SecretBinding: %s", err2.Error())
+							return err2
+						}
 					}
 				} else if !apierrors.IsNotFound(err) {
 					return err
@@ -189,18 +196,29 @@ func (c *defaultControl) ReconcileSecretBinding(obj *gardencorev1beta1.SecretBin
 		return err
 	}
 
+	// TODO: This code can be removed in a future version.
+	if controllerutils.HasFinalizer(secret, gardencorev1beta1.ExternalGardenerNameDeprecated) {
+		if err := controllerutils.RemoveFinalizer(ctx, c.k8sGardenClient.Client(), secret.DeepCopy(), gardencorev1beta1.ExternalGardenerNameDeprecated); err != nil {
+			secretBindingLogger.Errorf("Could not remove deprecated finalizer from Secret referenced in SecretBinding: %s", err.Error())
+			return err
+		}
+	}
+
 	return nil
 }
 
 // We may only release a secret if there is no other secretbinding that references it (maybe in a different namespace).
-func (c *defaultControl) mayReleaseSecret(namespace, name string) (bool, error) {
+func (c *defaultControl) mayReleaseSecret(secretBindingNamespace, secretBindingName, secretNamespace, secretName string) (bool, error) {
 	secretBindingList, err := c.secretBindingLister.List(labels.Everything())
 	if err != nil {
 		return false, err
 	}
 
 	for _, secretBinding := range secretBindingList {
-		if secretBinding.SecretRef.Namespace == namespace && secretBinding.SecretRef.Name == name {
+		if secretBinding.Namespace == secretBindingNamespace && secretBinding.Name == secretBindingName {
+			continue
+		}
+		if secretBinding.SecretRef.Namespace == secretNamespace && secretBinding.SecretRef.Name == secretName {
 			return false, nil
 		}
 	}

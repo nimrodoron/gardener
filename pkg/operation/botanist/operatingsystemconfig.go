@@ -122,17 +122,15 @@ func (b *Botanist) generateDownloaderConfig(machineImageName string) map[string]
 	return map[string]interface{}{
 		"type":    machineImageName,
 		"purpose": extensionsv1alpha1.OperatingSystemConfigPurposeProvision,
-		"server":  fmt.Sprintf("https://%s", b.Shoot.ComputeAPIServerURL(false, true, b.APIServerAddress)),
+		"server":  fmt.Sprintf("https://%s", b.Shoot.ComputeOutOfClusterAPIServerAddress(b.APIServerAddress, true)),
 	}
 }
 
 func (b *Botanist) generateOriginalConfig() (map[string]interface{}, error) {
 	var (
-		serviceNetwork = b.Shoot.GetServiceNetwork()
-
 		originalConfig = map[string]interface{}{
 			"kubernetes": map[string]interface{}{
-				"clusterDNS": common.ComputeClusterIP(serviceNetwork, 10),
+				"clusterDNS": b.Shoot.Networks.CoreDNS.String(),
 				"domain":     gardencorev1beta1.DefaultDomain,
 				"version":    b.Shoot.Info.Spec.Kubernetes.Version,
 			},
