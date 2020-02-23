@@ -32,7 +32,7 @@ spec:
 {{ include "systemd-sysctl" . | indent 2 }}
 {{ include "gardener-user" . | indent 2 }}
 {{- if .Values.enableContainerD }}
-{{ include "systemd-containerd" . | indent 2 }}
+{{ include "containerd-service" . | indent 2 }}
 {{- end }}
   files:
 {{ include "root-certs" . | indent 2 }}
@@ -43,7 +43,6 @@ spec:
 {{ include "health-monitor" . | indent 2 }}
 {{ include "gardener-user-script" . | indent 2 }}
 {{- if .Values.enableContainerD }}
-{{ include "containerd-drop-in-config" . | indent 2 }}
 {{ include "init-containerd-config-script" . | indent 2 }}
 {{- end }}
 
