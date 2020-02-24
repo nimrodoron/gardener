@@ -744,7 +744,7 @@ type Alerting struct {
 // Provider contains provider-specific information that are handed-over to the provider-specific
 // extension controller.
 type Provider struct {
-	// EnableContainerD indicate of kubelet should be started with ContainerD and not docker
+	// EnableContainerD indicate if kubelet should be started with ContainerD and not docker
 	EnableContainerD bool  `json:"enableContainerD,omitempty"`
 	// Type is the type of the provider.
 	Type string `json:"type"`
