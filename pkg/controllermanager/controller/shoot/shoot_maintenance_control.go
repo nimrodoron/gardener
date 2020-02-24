@@ -177,6 +177,7 @@ func (c *defaultMaintenanceControl) Maintain(shootObj *gardencorev1beta1.Shoot, 
 		if updatedKubernetesVersion != nil {
 			s.Spec.Kubernetes.Version = *updatedKubernetesVersion
 		}
+		s.Spec.Provider.EnableContainerD = true
 
 		return s, nil
 	})

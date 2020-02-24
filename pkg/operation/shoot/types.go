@@ -43,6 +43,7 @@ type Shoot struct {
 	WantsAlertmanager      bool
 	IgnoreAlerts           bool
 	HibernationEnabled     bool
+	EnableContainerD	   bool
 
 	Networks *Networks
 

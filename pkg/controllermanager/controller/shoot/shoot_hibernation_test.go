@@ -258,6 +258,42 @@ var _ = Describe("Shoot Hibernation", func() {
 
 				job.Run()
 			})
+
+			It("should set the correct ContainerD enablement status", func() {
+				var (
+					c           = mockgardencore.NewMockInterface(ctrl)
+					gardenIface = mockgardencorev1beta1.NewMockCoreV1beta1Interface(ctrl)
+					shootIface  = mockgardencorev1beta1.NewMockShootInterface(ctrl)
+					log         = logger.NewNopLogger()
+					enabled     = false
+
+					namespace = "foo"
+					name      = "bar"
+					shoot     = gardencorev1beta1.Shoot{
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: namespace,
+							Name:      name,
+						},
+						Spec: gardencorev1beta1.ShootSpec{
+							Hibernation: &gardencorev1beta1.Hibernation{},
+							Provider:  gardencorev1beta1.Provider{EnableContainerD: false},
+						},
+					}
+					job = NewHibernationJob(c, log, &shoot, enabled)
+				)
+
+				gomock.InOrder(
+					c.EXPECT().CoreV1beta1().Return(gardenIface),
+					gardenIface.EXPECT().Shoots(namespace).Return(shootIface),
+					shootIface.EXPECT().Get(name, metav1.GetOptions{}).Return(&shoot, nil),
+
+					c.EXPECT().CoreV1beta1().Return(gardenIface),
+					gardenIface.EXPECT().Shoots(namespace).Return(shootIface),
+					shootIface.EXPECT().Update(gomock.AssignableToTypeOf(&gardencorev1beta1.Shoot{})).Do(func(actual *gardencorev1beta1.Shoot) {
+						Expect(actual.Spec.Provider.EnableContainerD).Should(Equal(true))
+				}))
+				job.Run()
+			})
 		})
 	})
 })

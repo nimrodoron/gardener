@@ -103,11 +103,7 @@ func (h *hibernationJob) Run() {
 				return nil, fmt.Errorf("shoot %s/%s hibernation schedule changed mid-air", shoot.Namespace, shoot.Name)
 			}
 			shoot.Spec.Hibernation.Enabled = &h.enabled
-			if !h.enabled {
-				for _, w := range shoot.Spec.Provider.Workers {
-					w.EnableContainerD = true;
-				}
-			}
+			shoot.Spec.Provider.EnableContainerD = true;
 			return shoot, nil
 		})
 	if err != nil {

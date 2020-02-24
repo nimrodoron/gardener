@@ -131,6 +131,10 @@ func SetDefaults_Shoot(obj *Shoot) {
 		p := ShootPurposeEvaluation
 		obj.Spec.Purpose = &p
 	}
+
+	if !obj.Spec.Provider.EnableContainerD {
+		obj.Spec.Provider.EnableContainerD = true
+	}
 }
 
 // SetDefaults_Maintenance sets default values for Maintenance objects.

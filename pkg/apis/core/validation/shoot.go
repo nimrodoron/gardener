@@ -182,6 +182,7 @@ func ValidateShootSpecUpdate(newSpec, oldSpec *core.ShootSpec, deletionTimestamp
 		allErrs = append(allErrs, apivalidation.ValidateImmutableField(newSpec.Networking.Nodes, oldSpec.Networking.Nodes, fldPath.Child("networking", "nodes"))...)
 	}
 
+	allErrs = append(allErrs, validateEnableContianerdField(newSpec.Provider.EnableContainerD, oldSpec.Provider.EnableContainerD, fldPath.Child("provider", "enableContainerD"))...)
 	return allErrs
 }
 
@@ -349,6 +350,14 @@ func validateKubernetesVersionUpdate(new, old string, fldPath *field.Path) field
 		allErrs = append(allErrs, field.Forbidden(fldPath, "kubernetes version upgrade cannot skip a minor version"))
 	}
 
+	return allErrs
+}
+
+func validateEnableContianerdField(new bool, old bool, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	if !new && old {
+		allErrs = append(allErrs, field.Invalid(fldPath, old, "can't update ContainerD enablement from true to false"))
+	}
 	return allErrs
 }
 

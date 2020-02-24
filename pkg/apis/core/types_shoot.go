@@ -613,6 +613,8 @@ type Alerting struct {
 // Provider contains provider-specific information that are handed-over to the provider-specific
 // extension controller.
 type Provider struct {
+	// EnableContainerD indicate of kubelet should be started with ContainerD and not docker
+	EnableContainerD bool
 	// Type is the type of the provider.
 	Type string
 	// ControlPlaneConfig contains the provider-specific control plane config blob. Please look up the concrete
@@ -631,8 +633,6 @@ type Worker struct {
 	Annotations map[string]string
 	// CABundle is a certificate bundle which will be installed onto every machine of this worker pool.
 	CABundle *string
-	// EnableContainerD indicate of kubelet should be started with ContainerD and not docker
-	EnableContainerD bool
 	// Kubernetes contains configuration for Kubernetes components related to this worker pool.
 	Kubernetes *WorkerKubernetes
 	// Labels is a map of key/value pairs for labels for all the `Node` objects in this worker pool.

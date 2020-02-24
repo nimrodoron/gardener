@@ -741,6 +741,8 @@ type Alerting struct {
 // Provider contains provider-specific information that are handed-over to the provider-specific
 // extension controller.
 type Provider struct {
+	// EnableContainerD indicate of kubelet should be started with ContainerD and not docker
+	EnableContainerD bool  `json:"enableContainerD,omitempty"`
 	// Type is the type of the provider.
 	Type string `json:"type"`
 	// ControlPlaneConfig contains the provider-specific control plane config blob. Please look up the concrete
@@ -765,8 +767,6 @@ type Worker struct {
 	// CABundle is a certificate bundle which will be installed onto every machine of this worker pool.
 	// +optional
 	CABundle *string `json:"caBundle,omitempty"`
-	// EnableContainerD indicate of kubelet should be started with ContainerD and not docker
-	EnableContainerD bool  `json:"enableContainerD,omitempty"`
 	// Kubernetes contains configuration for Kubernetes components related to this worker pool.
 	// +optional
 	Kubernetes *WorkerKubernetes `json:"kubernetes,omitempty"`

@@ -89,7 +89,7 @@ func (b *Botanist) ComputeShootOperatingSystemConfig(ctx context.Context) error 
 			defer wg.Done()
 
 			downloaderConfig := b.generateDownloaderConfig(worker.Machine.Image.Name)
-			oscs, err := b.deployOperatingSystemConfigsForWorker(b.Shoot.CloudProfile.Spec.MachineTypes, worker.Machine.Image, utils.MergeMaps(downloaderConfig, nil), utils.MergeMaps(originalConfig, nil), worker)
+			oscs, err := b.deployOperatingSystemConfigsForWorker(b.Shoot.CloudProfile.Spec.MachineTypes, worker.Machine.Image, utils.MergeMaps(downloaderConfig, nil), utils.MergeMaps(originalConfig, nil), worker, b.Shoot.EnableContainerD)
 			results <- &oscOutput{worker.Name, oscs, err}
 		}(worker)
 	}
@@ -148,7 +148,7 @@ func (b *Botanist) generateOriginalConfig() (map[string]interface{}, error) {
 	return b.InjectShootShootImages(originalConfig, common.PauseContainerImageName, common.HyperkubeImageName)
 }
 
-func (b *Botanist) deployOperatingSystemConfigsForWorker(machineTypes []gardencorev1beta1.MachineType, machineImage *gardencorev1beta1.ShootMachineImage, downloaderConfig, originalConfig map[string]interface{}, worker gardencorev1beta1.Worker) (*shoot.OperatingSystemConfigs, error) {
+func (b *Botanist) deployOperatingSystemConfigsForWorker(machineTypes []gardencorev1beta1.MachineType, machineImage *gardencorev1beta1.ShootMachineImage, downloaderConfig, originalConfig map[string]interface{}, worker gardencorev1beta1.Worker, enableContainerD bool) (*shoot.OperatingSystemConfigs, error) {
 	secretName := b.Shoot.ComputeCloudConfigSecretName(worker.Name)
 
 	downloaderConfig["secretName"] = secretName
@@ -312,8 +312,8 @@ func (b *Botanist) deployOperatingSystemConfigsForWorker(machineTypes []gardenco
 		"kubeletDataVolume": worker.KubeletDataVolumeName,
 	}
 
-	originalConfig["enableContainerD"] = worker.EnableContainerD
-	downloaderConfig["enableContainerD"] = worker.EnableContainerD
+	originalConfig["enableContainerD"] = enableContainerD
+	downloaderConfig["enableContainerD"] = enableContainerD
 
 	var (
 		downloaderName = fmt.Sprintf("%s-downloader", secretName)

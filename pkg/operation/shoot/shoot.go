@@ -80,6 +80,7 @@ func New(k8sGardenClient kubernetes.Interface, k8sGardenCoreInformers gardencore
 
 		HibernationEnabled:     gardencorev1beta1helper.HibernationIsEnabled(shoot),
 		WantsClusterAutoscaler: false,
+		EnableContainerD:		shoot.Spec.Provider.EnableContainerD,
 
 		Extensions: extensions,
 	}

@@ -504,6 +504,7 @@ var _ = Describe("Shoot Validation Tests", func() {
 				provider := core.Provider{
 					Type:    "foo",
 					Workers: []core.Worker{worker},
+					EnableContainerD: true,
 				}
 
 				shoot.Spec.Provider = provider
@@ -655,6 +656,18 @@ var _ = Describe("Shoot Validation Tests", func() {
 				Expect(errorList).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
 					"Type":  Equal(field.ErrorTypeInvalid),
 					"Field": Equal("spec.provider.workers[0].name"),
+				}))))
+			})
+
+			It("should forbid updating the enablement of ContainerD from true to false", func() {
+				newShoot := prepareShootForUpdate(shoot)
+				newShoot.Spec.Provider.EnableContainerD = false
+
+				errorList := ValidateShootUpdate(newShoot, shoot)
+
+				Expect(errorList).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeInvalid),
+					"Field": Equal("spec.provider.enableContainerD"),
 				}))))
 			})
 
