@@ -211,18 +211,18 @@ func (b *Botanist) WakeUpControlPlane(ctx context.Context) error {
 		return err
 	}
 
-	if err := kubernetes.ScaleDeployment(ctx, client, kutil.Key(b.Shoot.SeedNamespace, v1beta1constants.DeploymentNameKubeAPIServer), 1); err != nil {
-		return err
-	}
-	if err := b.WaitUntilKubeAPIServerReady(ctx); err != nil {
-		return err
-	}
-
 	if err := b.DeployKubeAPIServerService(); err != nil {
 		return err
 	}
 
 	if err := b.WaitUntilKubeAPIServerServiceIsReady(ctx); err != nil {
+		return err
+	}
+
+	if err := kubernetes.ScaleDeployment(ctx, client, kutil.Key(b.Shoot.SeedNamespace, v1beta1constants.DeploymentNameKubeAPIServer), 1); err != nil {
+		return err
+	}
+	if err := b.WaitUntilKubeAPIServerReady(ctx); err != nil {
 		return err
 	}
 
@@ -603,9 +603,7 @@ func (b *Botanist) deployNetworkPolicies(ctx context.Context, denyAll bool) erro
 		values = map[string]interface{}{}
 	)
 
-	for _, addr := range b.Seed.Info.Spec.Networks.BlockCIDRs {
-		excludeNets = append(excludeNets, addr)
-	}
+	excludeNets = append(excludeNets, b.Seed.Info.Spec.Networks.BlockCIDRs...)
 
 	var shootCIDRNetworks []string
 	if v := b.Shoot.GetNodeNetwork(); v != nil {
@@ -661,10 +659,12 @@ func (b *Botanist) DeployKubeAPIServerService() error {
 // DeployKubeAPIServer deploys kube-apiserver deployment.
 func (b *Botanist) DeployKubeAPIServer() error {
 	hvpaEnabled := gardenletfeatures.FeatureGate.Enabled(features.HVPA)
+	memoryMetricForHpaEnabled := false
 
 	if b.ShootedSeed != nil {
 		// Override for shooted seeds
 		hvpaEnabled = gardenletfeatures.FeatureGate.Enabled(features.HVPAForShootedSeed)
+		memoryMetricForHpaEnabled = true
 	}
 
 	var (
@@ -697,6 +697,9 @@ func (b *Botanist) DeployKubeAPIServer() error {
 			},
 			"hvpa": map[string]interface{}{
 				"enabled": hvpaEnabled,
+			},
+			"hpa": map[string]interface{}{
+				"memoryMetricForHpaEnabled": memoryMetricForHpaEnabled,
 			},
 		}
 	)
@@ -844,7 +847,7 @@ func (b *Botanist) DeployKubeAPIServer() error {
 			apiServerConfig.AuditConfig.AuditPolicy.ConfigMapRef != nil {
 			auditPolicy, err := b.getAuditPolicy(apiServerConfig.AuditConfig.AuditPolicy.ConfigMapRef.Name, b.Shoot.Info.Namespace)
 			if err != nil {
-				return fmt.Errorf("Retrieving audit policy from the ConfigMap '%v' failed with reason '%v'", apiServerConfig.AuditConfig.AuditPolicy.ConfigMapRef.Name, err)
+				return fmt.Errorf("retrieving audit policy from the ConfigMap '%v' failed with reason '%v'", apiServerConfig.AuditConfig.AuditPolicy.ConfigMapRef.Name, err)
 			}
 			defaultValues["auditConfig"] = map[string]interface{}{
 				"auditPolicy": auditPolicy,
@@ -914,29 +917,29 @@ func (b *Botanist) getAuditPolicy(name, namespace string) (string, error) {
 	}
 	auditPolicy, ok := auditPolicyCm.Data[auditPolicyConfigMapDataKey]
 	if !ok {
-		return "", fmt.Errorf("Missing '.data.policy' in audit policy configmap %v/%v", namespace, name)
+		return "", fmt.Errorf("missing '.data.policy' in audit policy configmap %v/%v", namespace, name)
 	}
 	if len(auditPolicy) == 0 {
-		return "", fmt.Errorf("Empty audit policy. Provide non-empty audit policy")
+		return "", fmt.Errorf("empty audit policy. Provide non-empty audit policy")
 	}
 	auditPolicyObj, schemaVersion, err := decoder.Decode([]byte(auditPolicy), nil, nil)
 	if err != nil {
-		return "", fmt.Errorf("Failed to decode the provided audit policy err=%v", err)
+		return "", fmt.Errorf("failed to decode the provided audit policy err=%v", err)
 	}
 
 	if isValidVersion, err := IsValidAuditPolicyVersion(b.ShootVersion(), schemaVersion); err != nil {
 		return "", err
 	} else if !isValidVersion {
-		return "", fmt.Errorf("Your shoot cluster version %q is not compatible with audit policy version %q", b.ShootVersion(), schemaVersion.GroupVersion().String())
+		return "", fmt.Errorf("your shoot cluster version %q is not compatible with audit policy version %q", b.ShootVersion(), schemaVersion.GroupVersion().String())
 	}
 
 	auditPolicyInternal, ok := auditPolicyObj.(*audit_internal.Policy)
 	if !ok {
-		return "", fmt.Errorf("Failure to cast to audit Policy type: %v", schemaVersion)
+		return "", fmt.Errorf("failure to cast to audit Policy type: %v", schemaVersion)
 	}
 	errList := auditvalidation.ValidatePolicy(auditPolicyInternal)
 	if len(errList) != 0 {
-		return "", fmt.Errorf("Provided invalid audit policy err=%v", errList)
+		return "", fmt.Errorf("provided invalid audit policy err=%v", errList)
 	}
 	return auditPolicy, nil
 }
@@ -1047,9 +1050,6 @@ func (b *Botanist) DeployETCD(ctx context.Context) error {
 			"checksum/secret-etcd-server-tls": b.CheckSums["etcd-server-tls"],
 			"checksum/secret-etcd-client-tls": b.CheckSums["etcd-client-tls"],
 		},
-		"hvpa": map[string]interface{}{
-			"enabled": hvpaEnabled,
-		},
 		"maintenanceWindow": b.Shoot.Info.Spec.Maintenance.TimeWindow,
 		"storageCapacity":   b.Seed.GetValidVolumeSize("10Gi"),
 	}
@@ -1064,6 +1064,23 @@ func (b *Botanist) DeployETCD(ctx context.Context) error {
 		if role == common.EtcdRoleMain {
 			// etcd-main emits extensive (histogram) metrics
 			etcd["metrics"] = "extensive"
+			etcd["hvpa"] = map[string]interface{}{
+				"enabled": hvpaEnabled,
+				"minAllowed": map[string]interface{}{
+					"cpu":    "200m",
+					"memory": "700M",
+				},
+			}
+		}
+
+		if role == common.EtcdRoleEvents {
+			etcd["hvpa"] = map[string]interface{}{
+				"enabled": hvpaEnabled,
+				"minAllowed": map[string]interface{}{
+					"cpu":    "50m",
+					"memory": "200M",
+				},
+			}
 		}
 
 		foundEtcd := true
