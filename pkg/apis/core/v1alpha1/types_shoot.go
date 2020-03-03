@@ -863,6 +863,9 @@ type Volume struct {
 type CRI struct {
 	// The name of the CRI library
 	Name CRIName `json:"name"`
+	// ContainerRuntimes is the list of the required container runtimes supported for a worker pool.
+	// +optional
+	ContainerRuntimes []ContainerRuntime `json:"dataVolumes,omitempty"`
 }
 
 // CRIName is a type alias for the CRI name string.
@@ -871,6 +874,12 @@ type CRIName string
 const (
 	CRINameContainerD CRIName = "containerd"
 )
+
+// ContainerRuntime contains information about worker's available container runtime
+type ContainerRuntime struct {
+	// Type is the type of the Container Runtime.
+	Type string `json:"type"`
+}
 
 var (
 	// DefaultWorkerMaxSurge is the default value for Worker MaxSurge.

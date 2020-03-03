@@ -48,6 +48,7 @@ type Shoot struct {
 
 	OperatingSystemConfigsMap map[string]OperatingSystemConfigs
 	Extensions                map[string]Extension
+	ContainerRuntimesMap      map[string]extensionsv1alpha1.ContainerRuntime
 	InfrastructureStatus      []byte
 	ControlPlaneStatus        []byte
 	MachineDeployments        []extensionsv1alpha1.MachineDeployment

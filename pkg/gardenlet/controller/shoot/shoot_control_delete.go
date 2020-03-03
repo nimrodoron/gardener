@@ -346,6 +346,16 @@ func (c *Controller) runDeleteShootFlow(o *operation.Operation, errorContext *er
 			Fn:           botanist.WaitUntilExtensionResourcesDeleted,
 			Dependencies: flow.NewTaskIDs(deleteExtensionResources),
 		})
+		deleteContainerRuntimeResources = g.Add(flow.Task{
+			Name:         "Delete stale container runtime resources",
+			Fn:           botanist.DeleteContainerRuntimeResources,
+			Dependencies: flow.NewTaskIDs(initializeShootClients),
+		})
+		waitUntilContainerRuntimeResourcesDeleted = g.Add(flow.Task{
+			Name:         "Waiting until stale container runtime resources are deleted",
+			Fn:           botanist.WaitUntilContainerRuntimeResourcesDeleted,
+			Dependencies: flow.NewTaskIDs(deleteContainerRuntimeResources),
+		})
 
 		// Services (and other objects that have a footprint in the infrastructure) still don't have finalizers yet. There is no way to
 		// determine whether all the resources have been deleted successfully yet, whether there was an error, or whether they are still
@@ -376,6 +386,7 @@ func (c *Controller) runDeleteShootFlow(o *operation.Operation, errorContext *er
 			destroyNetwork,
 			waitUntilNetworkIsDestroyed,
 			waitUntilExtensionResourcesDeleted,
+			waitUntilContainerRuntimeResourcesDeleted,
 		)
 		destroyControlPlane = g.Add(flow.Task{
 			Name:         "Destroying shoot control plane",

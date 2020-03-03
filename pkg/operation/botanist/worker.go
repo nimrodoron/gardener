@@ -83,6 +83,12 @@ func (b *Botanist) DeployWorker(ctx context.Context) error {
 			}
 		}
 
+		if worker.CRI != nil && worker.CRI.ContainerRuntimes != nil {
+			for _, cr := range worker.CRI.ContainerRuntimes {
+				worker.Labels[fmt.Sprintf(extensionsv1alpha1.ContainerRuntimeWorkerLabel, cr.Type)] = "true"
+			}
+		}
+
 		pools = append(pools, extensionsv1alpha1.WorkerPool{
 			Name:           worker.Name,
 			Minimum:        int(worker.Minimum),

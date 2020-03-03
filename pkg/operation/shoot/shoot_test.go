@@ -528,4 +528,135 @@ var _ = Describe("shoot", func() {
 			),
 		)
 	})
+
+	Context("ContainerRuntime Extensions", func() {
+		var (
+			shootNamespace = "shoot--foo--bar"
+			extensionKind  = extensionsv1alpha1.ContainerRuntimeResource
+
+			fooContainerRuntimeType = "foo"
+			fooRegistration         = gardencorev1beta1.ControllerRegistration{
+				Spec: gardencorev1beta1.ControllerRegistrationSpec{
+					Resources: []gardencorev1beta1.ControllerResource{
+						{
+							Kind: extensionKind,
+							Type: fooContainerRuntimeType,
+						},
+					},
+				},
+			}
+			fooContainerRuntime = gardencorev1beta1.ContainerRuntime{
+				Type: fooContainerRuntimeType,
+			}
+
+			barContainerRuntimeType = "bar"
+			barRegistration         = gardencorev1beta1.ControllerRegistration{
+				Spec: gardencorev1beta1.ControllerRegistrationSpec{
+					Resources: []gardencorev1beta1.ControllerResource{
+						{
+							Kind:            extensionKind,
+							Type:            barContainerRuntimeType,
+							GloballyEnabled: pointer.BoolPtr(true),
+						},
+					},
+				},
+			}
+		)
+
+		DescribeTable("#MergeContainerRuntimeExtensions",
+			func(registrations []gardencorev1beta1.ControllerRegistration, workers []gardencorev1beta1.Worker, namespace string, conditionMatcher types.GomegaMatcher) {
+				ext, err := MergeContainerRuntimeExtensions(registrations, workers, namespace)
+				Expect(ext).To(conditionMatcher)
+				Expect(err).To(BeNil())
+			},
+			Entry("No ContainerRuntimes", nil, []gardencorev1beta1.Worker{{Name: "worker-1"}, {Name: "worker-2"}}, shootNamespace, BeEmpty()),
+			Entry("ContainerRuntime w/o registration", nil,
+				[]gardencorev1beta1.Worker{
+					{Name: "worker-1", CRI: &gardencorev1beta1.CRI{
+						Name:              "cri",
+						ContainerRuntimes: []gardencorev1beta1.ContainerRuntime{{Type: "foo-cr"}}}},
+					{Name: "worker-2"}}, shootNamespace, BeEmpty()),
+			Entry("ContainerRuntimes w/ registration",
+				[]gardencorev1beta1.ControllerRegistration{
+					fooRegistration,
+				},
+				[]gardencorev1beta1.Worker{
+					{Name: "worker-1", CRI: &gardencorev1beta1.CRI{
+						Name:              "cri",
+						ContainerRuntimes: []gardencorev1beta1.ContainerRuntime{fooContainerRuntime}}},
+					{Name: "worker-2"}},
+				shootNamespace,
+				HaveKeyWithValue(
+					Equal(fooContainerRuntimeType),
+					MatchFields(IgnoreExtras,
+						Fields{
+							"ObjectMeta": MatchFields(IgnoreExtras, Fields{
+								"Name": Equal(fooContainerRuntimeType),
+							}),
+							"Spec": MatchFields(IgnoreExtras, Fields{
+								"DefaultSpec": MatchAllFields(Fields{
+									"Type":           Equal(fooContainerRuntimeType),
+									"ProviderConfig": BeNil(),
+								}),
+							}),
+						},
+					),
+				),
+			),
+			Entry("Registration w/o ContainerRuntimes",
+				[]gardencorev1beta1.ControllerRegistration{
+					fooRegistration,
+				},
+				nil,
+				shootNamespace,
+				BeEmpty(),
+			),
+			Entry("Required ContainerRuntime registration, w/o ContainerRuntime",
+				[]gardencorev1beta1.ControllerRegistration{
+					barRegistration,
+				},
+				nil,
+				shootNamespace,
+				BeEmpty(),
+			),
+			Entry("Multuple registrations, w/ one ContainerRuntime",
+				[]gardencorev1beta1.ControllerRegistration{
+					fooRegistration,
+					barRegistration,
+					{
+						Spec: gardencorev1beta1.ControllerRegistrationSpec{
+							Resources: []gardencorev1beta1.ControllerResource{
+								{
+									Kind: "kind",
+									Type: "type",
+								},
+							},
+						},
+					},
+				},
+				[]gardencorev1beta1.Worker{
+					{Name: "worker-1", CRI: &gardencorev1beta1.CRI{
+						Name:              gardencorev1beta1.CRIName(fooContainerRuntimeType),
+						ContainerRuntimes: []gardencorev1beta1.ContainerRuntime{fooContainerRuntime}}},
+				},
+				shootNamespace,
+				HaveKeyWithValue(
+					Equal(fooContainerRuntimeType),
+					MatchFields(IgnoreExtras,
+						Fields{
+							"ObjectMeta": MatchFields(IgnoreExtras, Fields{
+								"Name": Equal(fooContainerRuntimeType),
+							}),
+							"Spec": MatchFields(IgnoreExtras, Fields{
+								"DefaultSpec": MatchAllFields(Fields{
+									"Type":           Equal(fooContainerRuntimeType),
+									"ProviderConfig": BeNil(),
+								}),
+							}),
+						},
+					),
+				),
+			),
+		)
+	})
 })

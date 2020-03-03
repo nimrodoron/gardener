@@ -311,6 +311,14 @@ func (b *Botanist) deployOperatingSystemConfigsForWorker(machineTypes []gardenco
 	}
 	if (worker.CRI != nil) {
 		criConfig["name"] = worker.CRI.Name
+
+		if (worker.CRI.ContainerRuntimes != nil) {
+			crTypesList := make([]string, len(worker.CRI.ContainerRuntimes))
+			for i, cr := range worker.CRI.ContainerRuntimes {
+				crTypesList[i] = cr.Type
+			}
+			criConfig["containerRuntimeTypes"] = crTypesList
+		}
 	}
 
 	originalConfig["worker"] = map[string]interface{}{
