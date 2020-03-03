@@ -45,6 +45,7 @@ var _ = Describe("Shoot Validation Tests", func() {
 
 			domain          = "my-cluster.example.com"
 			dnsProviderType = "some-provider"
+			secretName      = "some-secret"
 			purpose         = core.ShootPurposeEvaluation
 			addon           = core.Addon{
 				Enabled: true,
@@ -56,6 +57,10 @@ var _ = Describe("Shoot Validation Tests", func() {
 				Name: "worker-name",
 				Machine: core.Machine{
 					Type: "large",
+					Image: &core.ShootMachineImage{
+						Name:    "image-name",
+						Version: "1.0.0",
+					},
 				},
 				Minimum:        1,
 				Maximum:        1,
@@ -76,6 +81,10 @@ var _ = Describe("Shoot Validation Tests", func() {
 				Name: "not_compliant",
 				Machine: core.Machine{
 					Type: "large",
+					Image: &core.ShootMachineImage{
+						Name:    "image-name",
+						Version: "1.0.0",
+					},
 				},
 				Minimum:        1,
 				Maximum:        1,
@@ -86,6 +95,10 @@ var _ = Describe("Shoot Validation Tests", func() {
 				Name: "worker-name-is-too-long",
 				Machine: core.Machine{
 					Type: "large",
+					Image: &core.ShootMachineImage{
+						Name:    "image-name",
+						Version: "1.0.0",
+					},
 				},
 				Minimum:        1,
 				Maximum:        1,
@@ -96,6 +109,10 @@ var _ = Describe("Shoot Validation Tests", func() {
 				Name: "cpu-worker",
 				Machine: core.Machine{
 					Type: "large",
+					Image: &core.ShootMachineImage{
+						Name:    "image-name",
+						Version: "1.0.0",
+					},
 				},
 				Minimum:        0,
 				Maximum:        2,
@@ -106,6 +123,10 @@ var _ = Describe("Shoot Validation Tests", func() {
 				Name: "cpu-worker",
 				Machine: core.Machine{
 					Type: "large",
+					Image: &core.ShootMachineImage{
+						Name:    "image-name",
+						Version: "1.0.0",
+					},
 				},
 				Minimum:        0,
 				Maximum:        0,
@@ -136,7 +157,8 @@ var _ = Describe("Shoot Validation Tests", func() {
 					DNS: &core.DNS{
 						Providers: []core.DNSProvider{
 							{
-								Type: &dnsProviderType,
+								Type:    &dnsProviderType,
+								Primary: pointer.BoolPtr(true),
 							},
 						},
 						Domain: &domain,
@@ -603,6 +625,10 @@ var _ = Describe("Shoot Validation Tests", func() {
 						"Field": Equal("spec.provider.workers[0].machine.type"),
 					})),
 					PointTo(MatchFields(IgnoreExtras, Fields{
+						"Type":  Equal(field.ErrorTypeRequired),
+						"Field": Equal("spec.provider.workers[0].machine.image"),
+					})),
+					PointTo(MatchFields(IgnoreExtras, Fields{
 						"Type":  Equal(field.ErrorTypeInvalid),
 						"Field": Equal("spec.provider.workers[0].minimum"),
 					})),
@@ -794,13 +820,12 @@ var _ = Describe("Shoot Validation Tests", func() {
 
 		Context("dns section", func() {
 			It("should forbid specifying a provider without a domain", func() {
-				shoot.Spec.DNS.Domain = pointer.StringPtr("foo/bar.baz")
-				shoot.Spec.DNS.Providers = nil
+				shoot.Spec.DNS.Domain = nil
 
 				errorList := ValidateShoot(shoot)
 
 				Expect(errorList).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
-					"Type":  Equal(field.ErrorTypeInvalid),
+					"Type":  Equal(field.ErrorTypeRequired),
 					"Field": Equal("spec.dns.domain"),
 				}))))
 			})
@@ -809,7 +834,8 @@ var _ = Describe("Shoot Validation Tests", func() {
 				shoot.Spec.DNS.Domain = nil
 				shoot.Spec.DNS.Providers = []core.DNSProvider{
 					{
-						Type: pointer.StringPtr(core.DNSUnmanaged),
+						Type:    pointer.StringPtr(core.DNSUnmanaged),
+						Primary: pointer.BoolPtr(true),
 					},
 				}
 
@@ -923,15 +949,98 @@ var _ = Describe("Shoot Validation Tests", func() {
 				Expect(errorList).To(BeEmpty())
 			})
 
-			It("should forbid updating the dns provider", func() {
+			It("should forbid updating the primary dns provider type", func() {
 				newShoot := prepareShootForUpdate(shoot)
 				shoot.Spec.DNS.Providers[0].Type = pointer.StringPtr("some-other-provider")
 
 				errorList := ValidateShootUpdate(newShoot, shoot)
 
 				Expect(errorList).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeForbidden),
+					"Field": Equal("spec.dns.providers"),
+				}))))
+			})
+
+			It("should forbid to unset the primary DNS provider type", func() {
+				newShoot := prepareShootForUpdate(shoot)
+				newShoot.Spec.DNS.Providers[0].Type = nil
+
+				errorList := ValidateShootUpdate(newShoot, shoot)
+
+				Expect(errorList).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeForbidden),
+					"Field": Equal("spec.dns.providers"),
+				}))))
+			})
+
+			It("should forbid to remove the primary DNS provider", func() {
+				newShoot := prepareShootForUpdate(shoot)
+				newShoot.Spec.DNS.Providers[0].Primary = pointer.BoolPtr(false)
+
+				errorList := ValidateShootUpdate(newShoot, shoot)
+
+				Expect(errorList).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeForbidden),
+					"Field": Equal("spec.dns.providers"),
+				}))))
+			})
+
+			It("should forbid adding another primary provider", func() {
+				newShoot := prepareShootForUpdate(shoot)
+				newShoot.Spec.DNS.Providers = append(newShoot.Spec.DNS.Providers, core.DNSProvider{
+					Primary: pointer.BoolPtr(true),
+				})
+
+				errorList := ValidateShootUpdate(newShoot, shoot)
+
+				Expect(errorList).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeForbidden),
+					"Field": Equal("spec.dns.providers[1].primary"),
+				}))))
+			})
+
+			It("should having the a provider with invalid secretName", func() {
+				var (
+					invalidSecretName = "foo/bar"
+				)
+
+				shoot.Spec.DNS.Providers = []core.DNSProvider{
+					{
+						SecretName: &secretName,
+						Type:       &dnsProviderType,
+					},
+					{
+						SecretName: &invalidSecretName,
+						Type:       &dnsProviderType,
+					},
+				}
+
+				errorList := ValidateShoot(shoot)
+
+				Expect(errorList).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
 					"Type":  Equal(field.ErrorTypeInvalid),
-					"Field": Equal("spec.dns.providers[0].type"),
+					"Field": Equal("spec.dns.providers[1]"),
+				}))))
+			})
+
+			It("should having the same provider multiple times", func() {
+
+				shoot.Spec.DNS.Providers = []core.DNSProvider{
+					{
+						SecretName: &secretName,
+						Type:       &dnsProviderType,
+					},
+					{
+						SecretName: &secretName,
+						Type:       &dnsProviderType,
+					},
+				}
+
+				errorList := ValidateShoot(shoot)
+
+				Expect(errorList).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeInvalid),
+					"Field": Equal("spec.dns.providers[1]"),
 				}))))
 			})
 
@@ -942,6 +1051,19 @@ var _ = Describe("Shoot Validation Tests", func() {
 				errorList := ValidateShootUpdate(newShoot, shoot)
 
 				Expect(errorList).To(HaveLen(0))
+			})
+
+			It("should forbid having more than one primary provider", func() {
+				shoot.Spec.DNS.Providers = append(shoot.Spec.DNS.Providers, core.DNSProvider{
+					Primary: pointer.BoolPtr(true),
+				})
+
+				errorList := ValidateShoot(shoot)
+
+				Expect(errorList).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeForbidden),
+					"Field": Equal("spec.dns.providers[1].primary"),
+				}))))
 			})
 		})
 
@@ -1624,12 +1746,81 @@ var _ = Describe("Shoot Validation Tests", func() {
 	})
 
 	Describe("#ValidateWorker", func() {
+		DescribeTable("validate worker machine",
+			func(machine core.Machine, matcher gomegatypes.GomegaMatcher) {
+				maxSurge := intstr.FromInt(1)
+				maxUnavailable := intstr.FromInt(0)
+				worker := core.Worker{
+					Name:           "worker-name",
+					Machine:        machine,
+					MaxSurge:       &maxSurge,
+					MaxUnavailable: &maxUnavailable,
+				}
+				errList := ValidateWorker(worker, nil)
+
+				Expect(errList).To(matcher)
+			},
+
+			Entry("empty machine type",
+				core.Machine{
+					Type: "",
+					Image: &core.ShootMachineImage{
+						Name:    "image-name",
+						Version: "1.0.0",
+					},
+				},
+				ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeRequired),
+					"Field": Equal("machine.type"),
+				}))),
+			),
+			Entry("missing machine image",
+				core.Machine{
+					Type: "large",
+				},
+				ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeRequired),
+					"Field": Equal("machine.image"),
+				}))),
+			),
+			Entry("empty machine image name",
+				core.Machine{
+					Type: "large",
+					Image: &core.ShootMachineImage{
+						Name:    "",
+						Version: "1.0.0",
+					},
+				},
+				ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeRequired),
+					"Field": Equal("machine.image.name"),
+				}))),
+			),
+			Entry("empty machine image version",
+				core.Machine{
+					Type: "large",
+					Image: &core.ShootMachineImage{
+						Name:    "image-name",
+						Version: "",
+					},
+				},
+				ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeRequired),
+					"Field": Equal("machine.image.version"),
+				}))),
+			),
+		)
+
 		DescribeTable("reject when maxUnavailable and maxSurge are invalid",
 			func(maxUnavailable, maxSurge intstr.IntOrString, expectType field.ErrorType) {
 				worker := core.Worker{
 					Name: "worker-name",
 					Machine: core.Machine{
 						Type: "large",
+						Image: &core.ShootMachineImage{
+							Name:    "image-name",
+							Version: "1.0.0",
+						},
 					},
 					MaxSurge:       &maxSurge,
 					MaxUnavailable: &maxUnavailable,
@@ -1663,6 +1854,10 @@ var _ = Describe("Shoot Validation Tests", func() {
 					Name: "worker-name",
 					Machine: core.Machine{
 						Type: "large",
+						Image: &core.ShootMachineImage{
+							Name:    "image-name",
+							Version: "1.0.0",
+						},
 					},
 					MaxSurge:       &maxSurge,
 					MaxUnavailable: &maxUnavailable,
@@ -1694,6 +1889,10 @@ var _ = Describe("Shoot Validation Tests", func() {
 					Name: "worker-name",
 					Machine: core.Machine{
 						Type: "large",
+						Image: &core.ShootMachineImage{
+							Name:    "image-name",
+							Version: "1.0.0",
+						},
 					},
 					MaxSurge:       &maxSurge,
 					MaxUnavailable: &maxUnavailable,
@@ -1724,6 +1923,10 @@ var _ = Describe("Shoot Validation Tests", func() {
 					Name: "worker-name",
 					Machine: core.Machine{
 						Type: "large",
+						Image: &core.ShootMachineImage{
+							Name:    "image-name",
+							Version: "1.0.0",
+						},
 					},
 					MaxSurge:       &maxSurge,
 					MaxUnavailable: &maxUnavailable,
@@ -1764,6 +1967,10 @@ var _ = Describe("Shoot Validation Tests", func() {
 				Name: "worker-name",
 				Machine: core.Machine{
 					Type: "large",
+					Image: &core.ShootMachineImage{
+						Name:    "image-name",
+						Version: "1.0.0",
+					},
 				},
 				MaxSurge:       &maxSurge,
 				MaxUnavailable: &maxUnavailable,
@@ -1787,6 +1994,10 @@ var _ = Describe("Shoot Validation Tests", func() {
 				Name: "worker-name",
 				Machine: core.Machine{
 					Type: "large",
+					Image: &core.ShootMachineImage{
+						Name:    "image-name",
+						Version: "1.0.0",
+					},
 				},
 				MaxSurge:       &maxSurge,
 				MaxUnavailable: &maxUnavailable,
@@ -1812,6 +2023,10 @@ var _ = Describe("Shoot Validation Tests", func() {
 				Name: "worker-name",
 				Machine: core.Machine{
 					Type: "large",
+					Image: &core.ShootMachineImage{
+						Name:    "image-name",
+						Version: "1.0.0",
+					},
 				},
 				MaxSurge:       &maxSurge,
 				MaxUnavailable: &maxUnavailable,
@@ -1845,6 +2060,10 @@ var _ = Describe("Shoot Validation Tests", func() {
 				Name: "worker-name",
 				Machine: core.Machine{
 					Type: "large",
+					Image: &core.ShootMachineImage{
+						Name:    "image-name",
+						Version: "1.0.0",
+					},
 				},
 				MaxSurge:              &maxSurge,
 				MaxUnavailable:        &maxUnavailable,
@@ -1868,6 +2087,10 @@ var _ = Describe("Shoot Validation Tests", func() {
 				Name: "worker-name",
 				Machine: core.Machine{
 					Type: "large",
+					Image: &core.ShootMachineImage{
+						Name:    "image-name",
+						Version: "1.0.0",
+					},
 				},
 				MaxSurge:              &maxSurge,
 				MaxUnavailable:        &maxUnavailable,
@@ -1895,6 +2118,10 @@ var _ = Describe("Shoot Validation Tests", func() {
 				Name: "worker-name",
 				Machine: core.Machine{
 					Type: "large",
+					Image: &core.ShootMachineImage{
+						Name:    "image-name",
+						Version: "1.0.0",
+					},
 				},
 				MaxSurge:       &maxSurge,
 				MaxUnavailable: &maxUnavailable,
