@@ -306,10 +306,18 @@ func (b *Botanist) deployOperatingSystemConfigsForWorker(machineTypes []gardenco
 		}
 	}
 
+	criConfig := map[string]interface{}{
+		"enableContainerD": worker.CRI != nil && worker.CRI.Name == gardencorev1beta1.CRINameContainerD,
+	}
+	if (worker.CRI != nil) {
+		criConfig["name"] = worker.CRI.Name
+	}
+
 	originalConfig["worker"] = map[string]interface{}{
 		"name":              worker.Name,
 		"kubelet":           kubelet,
 		"kubeletDataVolume": worker.KubeletDataVolumeName,
+		"cri":               criConfig,
 	}
 
 	var (

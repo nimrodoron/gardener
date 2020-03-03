@@ -65,6 +65,9 @@ var (
 		string(core.ShootPurposeDevelopment),
 		string(core.ShootPurposeProduction),
 	)
+	avaliableWorkerCRINames = sets.NewString(
+		string(core.CRINameContainerD),
+	)
 )
 
 // ValidateShoot validates a Shoot object.
@@ -848,6 +851,10 @@ func ValidateWorker(worker core.Worker, fldPath *field.Path) field.ErrorList {
 		}
 	}
 
+	if (worker.CRI != nil) {
+		allErrs = append(allErrs, ValidateCRI(worker.CRI, fldPath.Child("cri"))...)
+	}
+
 	return allErrs
 }
 
@@ -1153,6 +1160,16 @@ func IsNotMoreThan100Percent(intOrStringValue *intstr.IntOrString, fldPath *fiel
 		return nil
 	}
 	allErrs = append(allErrs, field.Invalid(fldPath, intOrStringValue, "must not be greater than 100%"))
+
+	return allErrs
+}
+
+func ValidateCRI(CRI *core.CRI,  fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	if (!avaliableWorkerCRINames.Has(string(CRI.Name))) {
+		allErrs = append(allErrs, field.NotSupported(fldPath.Child("name"), CRI.Name, avaliableWorkerCRINames.List()))
+	}
 
 	return allErrs
 }

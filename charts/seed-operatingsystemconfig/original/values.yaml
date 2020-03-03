@@ -16,6 +16,9 @@ kubernetes:
   version: 1.11.2
 worker:
   name: cpu-worker
+# cri:
+#   name: containerd
+#   enableContainerD: true
   kubelet:
     caCert: abcd
     cpuCFSQuota: true

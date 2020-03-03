@@ -2141,6 +2141,23 @@ var _ = Describe("Shoot Validation Tests", func() {
 			))
 		})
 
+		DescribeTable("validate that CRI name is valid",
+			func(name core.CRIName, matcher gomegatypes.GomegaMatcher) {
+				worker := core.Worker{
+						Name:    "worker",
+						CRI: &core.CRI{Name: name}}
+
+				errList := ValidateCRI(worker.CRI, field.NewPath("cri"))
+
+				Expect(errList).To(matcher)
+			},
+
+			Entry("valid CRI name", core.CRINameContainerD, HaveLen(0)),
+			Entry("not valid CRI name", core.CRIName("other"), ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
+				"Type":  Equal(field.ErrorTypeNotSupported),
+				"Field": Equal("cri.name"),
+			})))),
+		)
 	})
 
 	Describe("#ValidateWorkers", func() {
