@@ -15,7 +15,6 @@
 package v1alpha1
 
 import (
-	"github.com/gardener/gardener-extension-provider-gcp/pkg/controller/worker"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
